@@ -21,24 +21,20 @@ jobs:
           dotnet-version: "8.0.x"
 
       - name: Restore
-        working-directory: backend
         run: dotnet restore Loyalty.sln
 
       - name: Build (Release)
-        working-directory: backend
         run: dotnet build Loyalty.sln -c Release --no-restore
 
       - name: Unit tests
-        working-directory: backend
-        run: dotnet test tests/Loyalty.UnitTests -c Release --no-build --verbosity minimal
+        run: dotnet test backend/tests/Loyalty.UnitTests/Loyalty.UnitTests.csproj -c Release --no-build --verbosity minimal
 
       # Integration tests requieren PostgreSQL — se corren en un job con servicio.
       # (WDAC no aplica en Linux runner; aquí sí son reproducibles).
       - name: Integration tests
-        working-directory: backend
         env:
           LOYALTY_DB_CONNECTION: "Host=localhost;Port=5433;Database=loyalty_test;Username=loyalty;Password=loyalty_dev;SslMode=Disable"
-        run: dotnet test tests/Loyalty.IntegrationTests -c Release --no-build --verbosity minimal
+        run: dotnet test backend/tests/Loyalty.IntegrationTests/Loyalty.IntegrationTests.csproj -c Release --no-build --verbosity minimal
 
     services:
       postgres:

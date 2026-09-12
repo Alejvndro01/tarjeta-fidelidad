@@ -15,7 +15,9 @@ on:
 
 env:
   REGISTRY: ghcr.io
-  IMAGE_NAME: ${{ github.repository }}
+  # GHCR exige minúsculas; `github.repository` (= AleJvndro01/tarjeta-fidelidad)
+  # lleva el owner en mayúscula y rompe el push en buildx. Fijar minúscula explícita.
+  IMAGE_NAME: alejvndro01/tarjeta-fidelidad
 
 jobs:
   build-push-api:
