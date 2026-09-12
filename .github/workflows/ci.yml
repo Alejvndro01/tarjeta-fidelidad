@@ -62,6 +62,16 @@ jobs:
           --health-retries 10
         ports:
           - 5433:5432
+      # AuthIntegrationTests usa Redis real para el throttle (LoginThrottleService).
+      redis:
+        image: redis:7-alpine
+        options: >-
+          --health-cmd "redis-cli ping"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 6379:6379
 
   build-pwa:
     runs-on: ubuntu-latest
