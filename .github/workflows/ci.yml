@@ -29,8 +29,20 @@ jobs:
       - name: Unit tests
         run: dotnet test backend/tests/Loyalty.UnitTests/Loyalty.UnitTests.csproj -c Release --no-build --verbosity minimal
 
-      # Integration tests requieren PostgreSQL — se corren en un job con servicio.
-      # (WDAC no aplica en Linux runner; aquí sí son reproducibles).
+      # Integration tests requieren PostgreSQL con el esquema aplicado. El servicio
+      # crea `loyalty_test` vacía; sin migraciones los tests fallan con "relation does not exist".
+      # Se aplican las migraciones EF antes de los tests (tool manifest vive en backend/.config).
+      - name: Apply migrations
+        working-directory: backend
+        env:
+          # La design-time factory lee SOLO env LOYALTY_DB_CONNECTION (ignora --connection).
+          LOYALTY_DB_CONNECTION: "Host=localhost;Port=5433;Database=loyalty_test;Username=loyalty;Password=loyalty_dev;SslMode=Disable"
+        run: |
+          dotnet tool restore
+          dotnet ef database update \
+            --project src/Loyalty.Infrastructure \
+            --startup-project src/Loyalty.Infrastructure
+
       - name: Integration tests
         env:
           LOYALTY_DB_CONNECTION: "Host=localhost;Port=5433;Database=loyalty_test;Username=loyalty;Password=loyalty_dev;SslMode=Disable"
