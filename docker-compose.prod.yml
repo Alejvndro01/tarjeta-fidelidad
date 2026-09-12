@@ -1,0 +1,48 @@
+# ============================================================
+# Composición de PRODUCCIÓN: levanta la API contenedorizada junto
+# a Postgres y Redis. LOS SECRETS se inyectan por variables de
+# entorno DEL DEPLOY (nunca commitear valores reales).
+#
+# Uso:
+#   docker compose -f infra/docker-compose.yml -f docker-compose.prod.yml \
+#     --env-file .env.prod up -d --build
+# Requiere un .env.prod con:
+#   POSTGRES_PASSWORD, JWT_SECRET_KEY, LOYALTY_DB_CONNECTION,
+#   CORS_ORIGIN_1 (SEED_DEMO_PASSWORD opcional)
+# ============================================================
+name: loyalty-prod
+
+services:
+  api:
+    build:
+      context: ..
+      dockerfile: Dockerfile
+    container_name: loyalty-api
+    environment:
+      ASPNETCORE_ENVIRONMENT: Production
+      ASPNETCORE_URLS: http://+:8080
+      # Cadena de conexión a la BD containerizada (red interna del compose).
+      ConnectionStrings__LoyaltyDb: ${LOYALTY_DB_CONNECTION:?Se requiere LOYALTY_DB_CONNECTION}
+      Redis__Configuration: redis:6379
+      Redis__InstanceName: "loyalty:"
+      # JWT secret — proveído por env del deploy, sin default en prod.
+      Jwt__SecretKey: ${JWT_SECRET_KEY:?Se requiere JWT_SECRET_KEY}
+      Jwt__Issuer: loyalty-api
+      Jwt__Audience: loyalty-pwa
+      # Password de seed de users demo (vacía = se omite el seed).
+      Seed__DemoPassword: ${SEED_DEMO_PASSWORD:-}
+      Cors__AllowedOrigins__0: ${CORS_ORIGIN_1:-}
+      Cors__AllowedOrigins__1: ${CORS_ORIGIN_2:-}
+    depends_on:
+      postgres:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    ports:
+      - "${API_PORT:-8080}:8080"
+    restart: unless-stopped
+    mem_limit: 512m
+
+volumes:
+  pgdata:
+  redisdata:

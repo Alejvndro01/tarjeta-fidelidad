@@ -1,0 +1,31 @@
+# ── .NET ──────────────────────────────────────────────
+backend/**/bin/
+backend/**/obj/
+*.user
+
+# ── Config local con secretos (nunca commitear en producción) ──
+appsettings.Development.json
+appsettings.*.local.json
+
+# ── Node / PWA ────────────────────────────────────────
+mobile/node_modules/
+mobile/.next/
+mobile/out/
+mobile/.env.local
+mobile/.env*.local
+
+# ── Env del deploy (contienen secretos reales) ────────
+.env
+.env.prod
+.env.local
+
+# ── Certificados / claves de wallet ───────────────────
+*.p12
+*.pfx
+service-account*.json
+google-key*.json
+
+# ── Varios ────────────────────────────────────────────
+*.log
+.DS_Store
+Thumbs.db

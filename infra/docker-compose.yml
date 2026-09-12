@@ -1,0 +1,40 @@
+# ============================================================
+# Stack de desarrollo local de la plataforma de fidelización.
+# LOS SECRETS van por variables de entorno (safe defaults dev);
+# en producción se definen en el entorno del deploy, nunca aquí.
+# ============================================================
+services:
+  postgres:
+    image: postgres:16-alpine
+    container_name: loyalty-postgres
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-loyalty}
+      POSTGRES_USER: ${POSTGRES_USER:-loyalty}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-loyalty_dev}
+    ports:
+      - "${POSTGRES_PORT:-5433}:5432"   # host 5433 para evitar colisión con el PostgreSQL nativo de :5432
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-loyalty} -d ${POSTGRES_DB:-loyalty}"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+  redis:
+    image: redis:7-alpine
+    container_name: loyalty-redis
+    command: ["redis-server", "--appendonly", "yes"]
+    ports:
+      - "6379:6379"
+    volumes:
+      - redisdata:/data
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 10
+
+volumes:
+  pgdata:
+  redisdata:
