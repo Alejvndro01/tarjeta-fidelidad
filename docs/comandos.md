@@ -215,3 +215,35 @@ docs/comandos.md             # este archivo
 mobile/                      # Next.js PWA (Fase 4, pendiente)
 README.md
 ```
+---
+## FASE 11-12 · contenedores y despliegue
+
+### Build imagen API (verificado)
+```bash
+docker build -t loyalty-api:test .
+# contenedor contra infra dev:
+docker run -d --name api --rm -p 5081:8080 \
+  -e ASPNETCORE_ENVIRONMENT=Production \
+  -e "ConnectionStrings__LoyaltyDb=Host=host.docker.internal;Port=5433;Database=loyalty;Username=loyalty;Password=loyalty_dev;SslMode=Disable" \
+  -e "Redis__Configuration=host.docker.internal:6379" \
+  -e "Redis__InstanceName=loyalty:" \
+  -e "Jwt__SecretKey=<base64>" \
+  -e "Cors__AllowedOrigins__0=http://localhost:3000" \
+  loyalty-api:test
+# health → http://127.0.0.1:5081/api/health == 200
+```
+
+### Despliegue prod (compose + env)
+```bash
+cp .env.example .env.prod   # llenar valores reales
+docker compose -f infra/docker-compose.yml -f docker-compose.prod.yml \
+  --env-file .env.prod up -d --build
+```
+
+### CI/CD (GitHub Actions)
+- `.github/workflows/ci.yml`: build .NET + unit + (integration con servicio Postgres) + build PWA.
+- `.github/workflows/cd.yml`: build+push imagen a GHCR (tag latest + sha) en push a main.
+
+### Nota Dockerfile
+El restore en `COPY backend/ .` (layout completo) es NECESARIO: fragmentar los `.csproj` individuales
+antes del restore rompe el entry point de la API (CS5001) dentro del contenedor Linux.

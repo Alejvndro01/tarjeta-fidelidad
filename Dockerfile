@@ -5,16 +5,14 @@
 FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 WORKDIR /src
 
-# Restaurar solo el .csproj una vez explota la caché de NuGet.
-COPY backend/src/Loyalty.Core/Loyalty.Core.csproj backend/src/Loyalty.Core/
-COPY backend/src/Loyalty.Application/Loyalty.Application.csproj backend/src/Loyalty.Application/
-COPY backend/src/Loyalty.Infrastructure/Loyalty.Infrastructure.csproj backend/src/Loyalty.Infrastructure/
-COPY backend/src/Loyalty.Contracts/Loyalty.Contracts.csproj backend/src/Loyalty.Contracts/
-COPY backend/src/Loyalty.Api/Loyalty.Api.csproj backend/src/Loyalty.Api/
+# Copia TODO el backend de una vez: el restore necesita la estructura
+# de proyectos completa para resolver ProjectReference correctamente.
+COPY backend/ ./backend/
+
+# Restaurar con el csproj de la API como entrada (resuelve referencias).
 RUN dotnet restore backend/src/Loyalty.Api/Loyalty.Api.csproj
 
-# Código + publish
-COPY backend/ .
+# Publcar Release (--no-restore: ya restaurado, no re-sincroniza).
 RUN dotnet publish backend/src/Loyalty.Api/Loyalty.Api.csproj \
     -c Release -o /app/publish --no-restore
 

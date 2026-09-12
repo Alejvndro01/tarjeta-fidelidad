@@ -1,0 +1,48 @@
+# ============================================================
+# CD — build Docker de la API y push a GHCR en cada push a main.
+# El deploy en sí (SSH/compose) se documenta, no se automatiza
+# aquí para no fijar credenciales de servidor en el repo.
+# ============================================================
+name: CD
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - "backend/**"
+      - "Dockerfile"
+      - ".dockerignore"
+
+env:
+  REGISTRY: ghcr.io
+  IMAGE_NAME: ${{ github.repository }}
+
+jobs:
+  build-push-api:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      packages: write
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Log in to GHCR
+        uses: docker/login-action@v3
+        with:
+          registry: ${{ env.REGISTRY }}
+          username: ${{ github.actor }}
+          password: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set up Docker Buildx (cache de capas)
+        uses: docker/setup-buildx-action@v3
+
+      - name: Build & push
+        uses: docker/build-push-action@v6
+        with:
+          context: .
+          push: true
+          tags: |
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:latest
+            ${{ env.REGISTRY }}/${{ env.IMAGE_NAME }}:${{ github.sha }}
+          cache-from: type=gha
+          cache-to: type=gha,mode=max

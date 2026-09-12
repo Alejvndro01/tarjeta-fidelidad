@@ -1,0 +1,13 @@
+# Excluir artefactos de build locales de la imagen (evita estado stale + contexto enorme)
+**/bin
+**/obj
+.git
+.gitignore
+**/node_modules
+mobile
+docs
+docker-compose.prod.yml
+.env*
+*.p12
+*.pfx
+README.md

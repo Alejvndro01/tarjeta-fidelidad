@@ -1,0 +1,80 @@
+# ============================================================
+# CI — build + test del backend. Se ejecuta en cada push/PR.
+# ============================================================
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+jobs:
+  build-test-backend:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup .NET 8
+        uses: actions/setup-dotnet@v4
+        with:
+          dotnet-version: "8.0.x"
+
+      - name: Restore
+        working-directory: backend
+        run: dotnet restore Loyalty.sln
+
+      - name: Build (Release)
+        working-directory: backend
+        run: dotnet build Loyalty.sln -c Release --no-restore
+
+      - name: Unit tests
+        working-directory: backend
+        run: dotnet test tests/Loyalty.UnitTests -c Release --no-build --verbosity minimal
+
+      # Integration tests requieren PostgreSQL — se corren en un job con servicio.
+      # (WDAC no aplica en Linux runner; aquí sí son reproducibles).
+      - name: Integration tests
+        working-directory: backend
+        env:
+          LOYALTY_DB_CONNECTION: "Host=localhost;Port=5433;Database=loyalty_test;Username=loyalty;Password=loyalty_dev;SslMode=Disable"
+        run: dotnet test tests/Loyalty.IntegrationTests -c Release --no-build --verbosity minimal
+
+    services:
+      postgres:
+        image: postgres:16-alpine
+        env:
+          POSTGRES_DB: loyalty_test
+          POSTGRES_USER: loyalty
+          POSTGRES_PASSWORD: loyalty_dev
+        options: >-
+          --health-cmd "pg_isready -U loyalty -d loyalty_test"
+          --health-interval 5s
+          --health-timeout 3s
+          --health-retries 10
+        ports:
+          - 5433:5432
+
+  build-pwa:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: "24"
+          cache: npm
+          cache-dependency-path: mobile/package-lock.json
+
+      - name: Install
+        working-directory: mobile
+        run: npm ci
+
+      - name: Type-check
+        working-directory: mobile
+        run: npx tsc --noEmit
+
+      - name: Build
+        working-directory: mobile
+        run: npm run build
